@@ -7,8 +7,6 @@
 import wx
 import sys
 import pyembroidery
-from pyembroidery.CsvWriter import get_common_name_dictionary
-
 
 # begin wxGlade: dependencies
 # end wxGlade
@@ -23,7 +21,7 @@ class StitchPanel(wx.Panel):
         kwds["style"] = kwds.get("style", 0) | wx.WANTS_CHARS
         wx.Panel.__init__(self, *args, **kwds)
 
-        self.name_dict = get_common_name_dictionary()
+        self.name_dict = pyembroidery.get_common_name_dictionary()
         self.emb_pattern = pyembroidery.EmbPattern()
         self.emb_pattern.stitch_abs(0, 0)
         self.name = None
@@ -218,7 +216,7 @@ class StitchPanel(wx.Panel):
             pass
 
     def update_affine(self, width, height):
-        extends = self.emb_pattern.extends()
+        extends = self.emb_pattern.bounds()
         min_x = min(extends[0], 0)
         min_y = min(extends[1], -35)
         max_x = max(extends[2], 100)
@@ -425,7 +423,6 @@ class StitchPanel(wx.Panel):
         self.window.SetInsertionPointEnd()
         self.window.updateText("\n%d file(s) dropped at %d,%d:\n" %
                                (len(filenames), x, y))
-        print filenames
         for filepath in filenames:
             self.window.updateText(filepath + '\n')
 
