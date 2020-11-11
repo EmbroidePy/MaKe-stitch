@@ -14,6 +14,8 @@ import pyembroidery
 # begin wxGlade: extracode
 # end wxGlade
 
+MaKeStitchVersion = "0.1.0"
+
 class StitchPanel(wx.Panel):
     def __init__(self, *args, **kwds):
 
@@ -260,7 +262,7 @@ class StitchPanel(wx.Panel):
         click_point = (scene_x, scene_y)
         best_point = None
         best_index = None
-        best_distance = sys.maxint
+        best_distance = float('-inf')
         for i, stitch in enumerate(self.emb_pattern.stitches):
             distance = self.distance_sq(click_point, stitch)
             if best_point is None or distance < best_distance or (
@@ -284,15 +286,20 @@ class StitchPanel(wx.Panel):
     def perform_draw_grid(self, dc):
         if self.grid is None:
             self.build_grid()
-        dc.SetPen(wx.Pen(self.grid[0]))
-        dc.DrawLineList(self.grid[1])
+        for g in self.grid:
+            dc.SetPen(wx.Pen(g[0]))
+            dc.DrawLineList(g[1])
 
     def build_grid(self):
         scale = self.scale
         tran_x = self.translate_x
         tran_y = self.translate_y
-        lines = []
+        black_lines = []
+        grey_lines = []
+        red_lines = []
+        black = False
         for j in range(-14, 14 + 1):
+            black = not black
             x0 = 0 * 2.5
             y0 = j * 2.5
             x1 = 100 * 2.5
@@ -307,8 +314,16 @@ class StitchPanel(wx.Panel):
             y0 *= scale
             x1 *= scale
             y1 *= scale
-            lines.append([x0, y0, x1, y1])
+            if j == 0:
+                red_lines.append([x0, y0, x1, y1])
+            else:
+                if black:
+                    black_lines.append([x0, y0, x1, y1])
+                else:
+                    grey_lines.append([x0, y0, x1, y1])
+        black = False
         for k in range(0, 100):
+            black = not black
             x0 = k * 2.5
             y0 = -14 * 2.5
             x1 = k * 2.5
@@ -323,8 +338,13 @@ class StitchPanel(wx.Panel):
             y0 *= scale
             x1 *= scale
             y1 *= scale
-            lines.append([x0, y0, x1, y1])
-        self.grid = ((0xFF, 0, 0), lines)
+            if black:
+                black_lines.append([x0, y0, x1, y1])
+            else:
+                grey_lines.append([x0, y0, x1, y1])
+        self.grid = [((0xFF, 0, 0), red_lines),
+                     ((0x80, 0x80, 0x80), grey_lines),
+                     ((0, 0, 0), black_lines)]
 
     def perform_draw(self, dc):
         dc.SetBackground(wx.Brush("White"))
@@ -458,7 +478,7 @@ class Stitcher(wx.Frame):
 
     def __set_properties(self):
         # begin wxGlade: Stitcher.__set_properties
-        self.SetTitle("MK Stitch")
+        self.SetTitle("MK Stitch v%s" % MaKeStitchVersion)
         # end wxGlade
 
     def __do_layout(self):
