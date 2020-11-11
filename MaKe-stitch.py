@@ -34,6 +34,7 @@ class StitchPanel(wx.Panel):
         self.translate_y = 0
         self.buffer = 0.1
         self.grid = None
+        self.text_grid = None
         self.clicked_position = None
 
         self.drag_point = None
@@ -232,6 +233,7 @@ class StitchPanel(wx.Panel):
         self.translate_x = -min_x + (width * self.buffer) / 2
         self.translate_y = -min_y + (height * self.buffer) / 2
         self.grid = None
+        self.text_grid = None
 
     def get_pattern_point(self, position):
         px = position[0]
@@ -289,17 +291,29 @@ class StitchPanel(wx.Panel):
         for g in self.grid:
             dc.SetPen(wx.Pen(g[0]))
             dc.DrawLineList(g[1])
+        for t in self.text_grid:
+            font = wx.Font(6, wx.SWISS, wx.NORMAL, wx.BOLD)
+            dc.SetFont(font)
+            w, h = dc.GetTextExtent(t[0])
+            if t[3] == 0:
+                dc.DrawText(t[0], wx.Point(t[1] -w, t[2]-h/2))
+            elif t[3] == 1:
+                dc.DrawText(t[0], wx.Point(t[1] - w / 2, t[2]-h))
+            else:
+                dc.DrawText(t[0], wx.Point(t[1] - w / 2, t[2]))
 
     def build_grid(self):
         scale = self.scale
         tran_x = self.translate_x
         tran_y = self.translate_y
+        text = []
         black_lines = []
         grey_lines = []
         red_lines = []
         black = False
         for j in range(-14, 14 + 1):
             black = not black
+
             x0 = 0 * 2.5
             y0 = j * 2.5
             x1 = 100 * 2.5
@@ -314,6 +328,7 @@ class StitchPanel(wx.Panel):
             y0 *= scale
             x1 *= scale
             y1 *= scale
+            text.append((str(j), x0, y0, 0))
             if j == 0:
                 red_lines.append([x0, y0, x1, y1])
             else:
@@ -338,6 +353,8 @@ class StitchPanel(wx.Panel):
             y0 *= scale
             x1 *= scale
             y1 *= scale
+            text.append((str(k), x0, y0, 1))
+            text.append((str(k), x1, y1, -1))
             if black:
                 black_lines.append([x0, y0, x1, y1])
             else:
@@ -345,6 +362,7 @@ class StitchPanel(wx.Panel):
         self.grid = [((0xFF, 0, 0), red_lines),
                      ((0x80, 0x80, 0x80), grey_lines),
                      ((0, 0, 0), black_lines)]
+        self.text_grid = text
 
     def perform_draw(self, dc):
         dc.SetBackground(wx.Brush("White"))
@@ -403,14 +421,19 @@ class StitchPanel(wx.Panel):
             dc.DrawCircle((tran_x + stitch[0]) * scale, (tran_y + stitch[1]) * scale, scale * 3)
 
         if self.selected_point is not None:
+            font = wx.Font(14, wx.SWISS, wx.NORMAL, wx.BOLD)
+            dc.SetFont(font)
             mod_stitch = self.emb_pattern.stitches[self.selected_point]
-            name = self.name_dict[mod_stitch[2]] + " " + str(self.selected_point)
+            name = "%s %d (%g, %g)" % (self.name_dict[mod_stitch[2]],
+                                       int(self.selected_point),
+                                       float(mod_stitch[0] / 2.5),
+                                       float(mod_stitch[1] / 2.5))
             dc.DrawText(name, 25, 25)
             dc.SetBrush(wx.Brush("Green"))
             dc.DrawCircle((tran_x + mod_stitch[0]) * scale, (tran_y + mod_stitch[1]) * scale, scale * 3)
 
     def on_paint(self, event):
-        dc = wx.BufferedPaintDC(self, self._Buffer)
+        wx.BufferedPaintDC(self, self._Buffer)
 
     def on_size(self, event):
         # The Buffer init is done here, to make sure the buffer is always
