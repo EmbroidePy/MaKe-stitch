@@ -353,8 +353,9 @@ class StitchPanel(wx.Panel):
             y0 *= scale
             x1 *= scale
             y1 *= scale
-            text.append((str(k), x0, y0, 1))
-            text.append((str(k), x1, y1, -1))
+            if k % 5 == 0:
+                text.append((str(k), x0, y0, 1))
+                text.append((str(k), x1, y1, -1))
             if black:
                 black_lines.append([x0, y0, x1, y1])
             else:
