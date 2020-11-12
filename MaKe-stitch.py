@@ -5,7 +5,6 @@
 #
 
 import wx
-import sys
 import pyembroidery
 
 # begin wxGlade: dependencies
@@ -14,7 +13,10 @@ import pyembroidery
 # begin wxGlade: extracode
 # end wxGlade
 
-MaKeStitchVersion = "0.1.0"
+MaKeStitchVersion = "0.2.0"
+PMV_SCALE = 2.5
+PMV_CURVE = 75
+
 
 class StitchPanel(wx.Panel):
     def __init__(self, *args, **kwds):
@@ -65,9 +67,9 @@ class StitchPanel(wx.Panel):
         if self.drag_point is None:
             return
         mod_stitch = self.emb_pattern.stitches[self.drag_point]
-        position = self.get_pattern_point(event.GetPosition())
-        mod_stitch[0] = position[0]
-        mod_stitch[1] = position[1]
+        position = self.scene_location_to_grid_position(event.GetPosition())
+        mod_stitch[0] = position[0] * PMV_SCALE
+        mod_stitch[1] = position[1] * PMV_SCALE
         self.update_drawing()
 
     def on_mouse_down(self, event):
@@ -76,7 +78,7 @@ class StitchPanel(wx.Panel):
             return
         position = event.GetPosition()
         nearest = self.get_nearest_point(position)
-        if nearest[1] > 25:
+        if nearest[1] > 100:
             event.Skip()
             self.drag_point = None
             return
@@ -97,11 +99,11 @@ class StitchPanel(wx.Panel):
         new_stitch = stitch[:]
         new_stitch2 = stitch[:]
         new_stitch3 = stitch[:]
-        position = self.get_pattern_point(self.clicked_position)
-        new_stitch[0] = position[0]
-        new_stitch[1] = position[1]
-        new_stitch3[0] = position[0]
-        new_stitch3[1] = position[1]
+        position = self.scene_location_to_grid_position(self.clicked_position)
+        new_stitch[0] = position[0] * PMV_SCALE
+        new_stitch[1] = position[1] * PMV_SCALE
+        new_stitch3[0] = position[0] * PMV_SCALE
+        new_stitch3[1] = position[1] * PMV_SCALE
         stitches.insert(self.selected_point + 1, new_stitch)
         stitches.insert(self.selected_point + 2, new_stitch2)
         stitches.insert(self.selected_point + 3, new_stitch3)
@@ -113,9 +115,9 @@ class StitchPanel(wx.Panel):
         self.clicked_position = event.GetPosition()
         nearest = self.get_nearest_point(self.clicked_position)
         if nearest[0] is None:  # No nearest node. Must have no nodes.
-            position = self.get_pattern_point(self.clicked_position)
+            position = self.scene_location_to_grid_position(self.clicked_position)
             stitches = self.emb_pattern.stitches
-            stitches.append([position[0], position[1], pyembroidery.STITCH])
+            stitches.append([position[0]*PMV_SCALE, position[1]*PMV_SCALE, pyembroidery.STITCH])
             self.selected_point = 0
             self.update_affines()
             self.update_drawing()
@@ -126,9 +128,9 @@ class StitchPanel(wx.Panel):
         stitches = self.emb_pattern.stitches
         stitch = stitches[self.selected_point]
         new_stitch = stitch[:]
-        position = self.get_pattern_point(self.clicked_position)
-        new_stitch[0] = position[0]
-        new_stitch[1] = position[1]
+        position = self.scene_location_to_grid_position(self.clicked_position)
+        new_stitch[0] = position[0]*PMV_SCALE
+        new_stitch[1] = position[1]*PMV_SCALE
         stitches.insert(self.selected_point + 1, new_stitch)
         self.selected_point += 1
         self.update_affines()
@@ -225,26 +227,37 @@ class StitchPanel(wx.Panel):
         max_x = max(extends[2], 100)
         max_y = max(extends[3], 35)
 
-        embroidery_width = (max_x - min_x) + (width * self.buffer)
-        embroidery_height = (max_y - min_y) + (height * self.buffer)
+        embroidery_width = (max_x - min_x) #+ (width * self.buffer)
+        embroidery_height = (max_y - min_y) #+ (height * self.buffer)
         scale_x = float(width) / embroidery_width
         scale_y = float(height) / embroidery_height
-        self.scale = min(scale_x, scale_y)
-        self.translate_x = -min_x + (width * self.buffer) / 2
-        self.translate_y = -min_y + (height * self.buffer) / 2
+        self.scale = min(scale_x, scale_y) * 2
+        self.translate_x = -min_x
+        self.translate_y = -(min_y/2)
         self.grid = None
         self.text_grid = None
 
-    def get_pattern_point(self, position):
+    def scene_location_to_grid_position(self, position):
         px = position[0]
         py = position[1]
         px /= self.scale
         py /= self.scale
         px -= self.translate_x
         py -= self.translate_y
-        px = round(px / 2.5) * 2.5
-        py = round(py / 2.5) * 2.5
+        px -= py * py / PMV_CURVE
+        px = round(px)
+        py = round(py)
         return px, py
+
+    def grid_position_to_scene_location(self, grid_x, grid_y):
+        x = grid_x
+        y = grid_y
+        x += grid_y * grid_y / PMV_CURVE
+        x += self.translate_x
+        y += self.translate_y
+        x *= self.scale
+        y *= self.scale
+        return x, y
 
     @staticmethod
     def distance_sq(p0, p1):
@@ -255,18 +268,12 @@ class StitchPanel(wx.Panel):
         return dx + dy
 
     def get_nearest_point(self, position):
-        scene_x = position[0]
-        scene_y = position[1]
-        scene_x /= self.scale
-        scene_y /= self.scale
-        scene_x -= self.translate_x
-        scene_y -= self.translate_y
-        click_point = (scene_x, scene_y)
         best_point = None
         best_index = None
         best_distance = float('-inf')
         for i, stitch in enumerate(self.emb_pattern.stitches):
-            distance = self.distance_sq(click_point, stitch)
+            s_x, s_y = self.grid_position_to_scene_location(stitch[0]/PMV_SCALE, stitch[1]/PMV_SCALE)
+            distance = self.distance_sq(position, (s_x, s_y))
             if best_point is None or distance < best_distance or (
                     distance == best_distance and self.selected_point == i):
                 best_point = stitch
@@ -296,16 +303,13 @@ class StitchPanel(wx.Panel):
             dc.SetFont(font)
             w, h = dc.GetTextExtent(t[0])
             if t[3] == 0:
-                dc.DrawText(t[0], wx.Point(t[1] -w, t[2]-h/2))
+                dc.DrawText(t[0], wx.Point(t[1] - w, t[2]-h/2))
             elif t[3] == 1:
                 dc.DrawText(t[0], wx.Point(t[1] - w / 2, t[2]-h))
             else:
                 dc.DrawText(t[0], wx.Point(t[1] - w / 2, t[2]))
 
     def build_grid(self):
-        scale = self.scale
-        tran_x = self.translate_x
-        tran_y = self.translate_y
         text = []
         black_lines = []
         grey_lines = []
@@ -313,21 +317,8 @@ class StitchPanel(wx.Panel):
         black = False
         for j in range(-14, 14 + 1):
             black = not black
-
-            x0 = 0 * 2.5
-            y0 = j * 2.5
-            x1 = 100 * 2.5
-            y1 = j * 2.5
-
-            x0 += tran_x
-            y0 += tran_y
-            x1 += tran_x
-            y1 += tran_y
-
-            x0 *= scale
-            y0 *= scale
-            x1 *= scale
-            y1 *= scale
+            x0, y0 = self.grid_position_to_scene_location(0, j)
+            x1, y1 = self.grid_position_to_scene_location(100,j)
             text.append((str(j), x0, y0, 0))
             if j == 0:
                 red_lines.append([x0, y0, x1, y1])
@@ -337,29 +328,19 @@ class StitchPanel(wx.Panel):
                 else:
                     grey_lines.append([x0, y0, x1, y1])
         black = False
-        for k in range(0, 100):
-            black = not black
-            x0 = k * 2.5
-            y0 = -14 * 2.5
-            x1 = k * 2.5
-            y1 = +14 * 2.5
-
-            x0 += tran_x
-            y0 += tran_y
-            x1 += tran_x
-            y1 += tran_y
-
-            x0 *= scale
-            y0 *= scale
-            x1 *= scale
-            y1 *= scale
-            if k % 5 == 0:
-                text.append((str(k), x0, y0, 1))
-                text.append((str(k), x1, y1, -1))
-            if black:
-                black_lines.append([x0, y0, x1, y1])
-            else:
-                grey_lines.append([x0, y0, x1, y1])
+        for j in range(-14, 14):
+            for k in range(0, 100):
+                black = not black
+                x0, y0 = self.grid_position_to_scene_location(k, j)
+                x1, y1 = self.grid_position_to_scene_location(k, j+1)
+                if k % 5 == 0 and j == -14:
+                    text.append((str(k), x0, y0, 1))
+                if k % 5 == 0 and j == 13:
+                    text.append((str(k), x1, y1, -1))
+                if black:
+                    black_lines.append([x0, y0, x1, y1])
+                else:
+                    grey_lines.append([x0, y0, x1, y1])
         self.grid = [((0xFF, 0, 0), red_lines),
                      ((0x80, 0x80, 0x80), grey_lines),
                      ((0, 0, 0), black_lines)]
@@ -372,22 +353,17 @@ class StitchPanel(wx.Panel):
         if self.emb_pattern is None:
             return
 
-        scale = self.scale
-        tran_x = self.translate_x
-        tran_y = self.translate_y
         draw_data = []
         for color in self.emb_pattern.get_as_colorblocks():
             lines = []
             last_x = None
             last_y = None
             for i, stitch in enumerate(color[0]):
-                current_x = stitch[0] + tran_x
-                current_y = stitch[1] + tran_y
+                current_x, current_y = self.grid_position_to_scene_location(stitch[0]/PMV_SCALE, stitch[1]/PMV_SCALE)
                 if last_x is not None:
-                    lines.append([last_x * scale, last_y * scale, current_x * scale, current_y * scale])
+                    lines.append([last_x, last_y, current_x, current_y])
                 last_x = current_x
                 last_y = current_y
-            thread = color[1]
             draw_data.append(((0, 0, 0), lines))
 
         current_stitch = self.current_stitch
@@ -419,7 +395,8 @@ class StitchPanel(wx.Panel):
         dc.SetBrush(wx.Brush("Blue"))
         dc.GetPen().SetWidth(1)
         for stitch in self.emb_pattern.stitches:
-            dc.DrawCircle((tran_x + stitch[0]) * scale, (tran_y + stitch[1]) * scale, scale * 3)
+            current_x, current_y = self.grid_position_to_scene_location(stitch[0]/PMV_SCALE, stitch[1]/PMV_SCALE)
+            dc.DrawCircle(current_x, current_y, 10)
 
         if self.selected_point is not None:
             font = wx.Font(14, wx.SWISS, wx.NORMAL, wx.BOLD)
@@ -427,11 +404,12 @@ class StitchPanel(wx.Panel):
             mod_stitch = self.emb_pattern.stitches[self.selected_point]
             name = "%s %d (%g, %g)" % (self.name_dict[mod_stitch[2]],
                                        int(self.selected_point),
-                                       float(mod_stitch[0] / 2.5),
-                                       float(mod_stitch[1] / 2.5))
-            dc.DrawText(name, 25, 25)
+                                       float(mod_stitch[0]) / PMV_SCALE,
+                                       float(mod_stitch[1]) / PMV_SCALE)
+            dc.DrawText(name, 0, 0)
             dc.SetBrush(wx.Brush("Green"))
-            dc.DrawCircle((tran_x + mod_stitch[0]) * scale, (tran_y + mod_stitch[1]) * scale, scale * 3)
+            m_x, m_y = self.grid_position_to_scene_location(mod_stitch[0]/PMV_SCALE, mod_stitch[1]/PMV_SCALE)
+            dc.DrawCircle(m_x, m_y, 10)
 
     def on_paint(self, event):
         wx.BufferedPaintDC(self, self._Buffer)
