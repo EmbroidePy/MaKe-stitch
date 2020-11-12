@@ -495,7 +495,7 @@ class Stitcher(wx.Frame):
         files = ""
         for format in pyembroidery.supported_formats():
             try:
-                if format["reader"] is not None and format["category"] is "stitch":
+                if format["reader"] is not None and format["category"] == "stitch":
                     files += "*." + format["extension"] + ";"
             except KeyError:
                 pass
@@ -511,7 +511,7 @@ class Stitcher(wx.Frame):
         files = ""
         for format in pyembroidery.supported_formats():
             try:
-                if format["writer"] is not None and format["category"] is "stitch":
+                if format["writer"] is not None and format["category"] == "stitch":
                     files += format["description"] + "(*." + format["extension"] + ")|*." + format[
                         "extension"] + "|"
             except KeyError:
