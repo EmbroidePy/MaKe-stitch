@@ -232,7 +232,7 @@ class StitchPanel(wx.Panel):
         scale_x = float(width) / embroidery_width
         scale_y = float(height) / embroidery_height
         self.scale = min(scale_x, scale_y) * 2
-        self.translate_x = -min_x
+        self.translate_x = -min_x + 3
         self.translate_y = -(min_y/2)
         self.grid = None
         self.text_grid = None
@@ -299,7 +299,7 @@ class StitchPanel(wx.Panel):
             dc.SetPen(wx.Pen(g[0]))
             dc.DrawLineList(g[1])
         for t in self.text_grid:
-            font = wx.Font(6, wx.SWISS, wx.NORMAL, wx.BOLD)
+            font = wx.Font(10, wx.SWISS, wx.NORMAL, wx.BOLD)
             dc.SetFont(font)
             w, h = dc.GetTextExtent(t[0])
             if t[3] == 0:
@@ -313,7 +313,7 @@ class StitchPanel(wx.Panel):
         text = []
         black_lines = []
         grey_lines = []
-        red_lines = []
+        magenta_lines = []
         black = False
         for j in range(-14, 14 + 1):
             black = not black
@@ -321,7 +321,7 @@ class StitchPanel(wx.Panel):
             x1, y1 = self.grid_position_to_scene_location(100,j)
             text.append((str(j), x0, y0, 0))
             if j == 0:
-                red_lines.append([x0, y0, x1, y1])
+                magenta_lines.append([x0, y0, x1, y1])
             else:
                 if black:
                     black_lines.append([x0, y0, x1, y1])
@@ -341,7 +341,7 @@ class StitchPanel(wx.Panel):
                     black_lines.append([x0, y0, x1, y1])
                 else:
                     grey_lines.append([x0, y0, x1, y1])
-        self.grid = [((0xFF, 0, 0), red_lines),
+        self.grid = [((0xFF, 0, 0xFF), magenta_lines),
                      ((0x80, 0x80, 0x80), grey_lines),
                      ((0, 0, 0), black_lines)]
         self.text_grid = text
