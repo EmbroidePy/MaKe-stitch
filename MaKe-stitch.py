@@ -6,7 +6,34 @@
 
 import wx
 import pyembroidery
+from wx.lib.embeddedimage import PyEmbeddedImage
 
+makestitch_icon = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAAAXNSR0IArs4c6QAAAARnQU1B'
+    b'AACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAASwSURBVGhD1ZlLKLxfGMcf5J5bbNDE'
+    b'ROR+CVkgkVuSXMJOZGGjJBY2VoqSjYWikJBQLsl9IcREpsYlC5cyKMJC4xaG83+fx/n9/uln'
+    b'hmHM+/rU5JznnGne73ue5znPOYBJkOHhYQYAzNramnl6elIbPwEBAay5uZnPeovkhGg0Gnpo'
+    b'tVrNLa88Pz+z9vZ2JpfLabyuro6PvCI5IZ2dnUwmk/He++zv75OYqKgobmHMXDBICicnJzg7'
+    b'O+O99/Hx8cEFgPX1dSgqKiKbGaqhloQwMzODl5cX+vsROOfi4kKaQuLi4sDW1hbm5ua4RTel'
+    b'paUgxI/gaBJFeEamUCh4Tzc4x97eXnrB/oe+vj4S8xFarZbmSdK1DAFjycLCAkTPWl1dXSCk'
+    b'UQpa/Li6ukJhYSEsLS3xGfpZW1sDKysr8WJkdHSUXAI/NTU1bHFxkSmVStbb28syMjL+jtXX'
+    b'1/NvvE9xcTETUrA4MdLY2EgPiaWIPoaGhpidnR3Nrays5Nb/ubu7o7GTkxPTC7m/v6cfv76+'
+    b'5paPUalUzNvbm76XmprK5ufnqQLAflVVFc0xuZDa2loWExPDe4Zxfn7OCgoKmBBLzN3dnY2P'
+    b'j/MRZvqslZycDJGRkdDU1MQtxsHkWQvf20+8O5MLCQoKgt3dXd4zIuhapmRsbIyC1NiIsrPj'
+    b'xvf4+AiWlpbc8n1E2dnxPNHQ0MB7RoLWxcRg2jT2T4siBEEhAwMDvPd9RBPS2tpq1FURtYzH'
+    b'oBdKDSgpKeGWV46Pj2FnZwdOT09BKGWgoqKCj+hGVCEzMzOQnp6Oy0J9fPCFhQUSmJKSQpcL'
+    b'Dw8PkJWVReN6QSFigjVTTk4OW15eZh0dHezw8JDsgiDW09ND7c8g+glxdXUVtra2wNPTE4Rz'
+    b'CNmE8h6enp7ogPVZRD0hCuU4uZNCoYC8vDyydXd3g7W1tUEiCFoXEcBDE5Yrf8BHwZMhHpK+'
+    b'giiu1d/fD3K5HGJjY8mtNjY26B4rPz8fjo6OQCaT8Zmfx6RChKMpTE1Nkev4+vpSfNjY2EB8'
+    b'fDx4eHhAW1sblJeX/81ihmAyIfjWt7e3wcHBAW5ubsDZ2RlCQkL+efsY8NPT0waL+XEhmH0m'
+    b'Jibo/gnBO6i0tDRaCV2Eh4eTcEMe7UezFvq/ENTUxo3N398fsrOz9YpAVCoVlJWV0cbY0tLC'
+    b'rfr5kRXBVRAqXHoQbLu4uNBObSibm5sQFhZGbXQ3XEldGF3I3t4elRaYhW5vb+lm3cvLi49+'
+    b'jebmZqiurgZzc/PXm/d3MKqQyclJyky4CkLpAYmJiXzEOGCyCA4O5r23GEWIUB/R7oxpFUXg'
+    b'lY+bmxsfNQ3fFjI7OwtXV1ckwM/PD6Kjo/mIafmyEPw/H9ZKeIGAvpuZmUkrIhZfEiKU3KBW'
+    b'q6mNPhsaGkptMTFIiEajoTSo1WoppaamptIGJwU+LUSpVNLxE10pISGBaiMp8aEQDGKh3KY9'
+    b'ITAwULRg/gi9Qg4ODuhfYI6OjpCUlESFnlTRKQRjAU9veGYICAjgVunyj5DLy0sYGRmha01c'
+    b'hd/CGyErKyt05Z+bm0vu9JsgIahlcHCQduaIiAg+9LswE3ZohquAx83fC8B/QI+w8nkB9vAA'
+    b'AAAASUVORK5CYII=')
 # begin wxGlade: dependencies
 # end wxGlade
 
@@ -481,6 +508,9 @@ class Stitcher(wx.Frame):
     def __set_properties(self):
         # begin wxGlade: Stitcher.__set_properties
         self.SetTitle("MK Stitch v%s" % MaKeStitchVersion)
+        _icon = wx.NullIcon
+        _icon.CopyFromBitmap(makestitch_icon.GetBitmap())
+        self.SetIcon(_icon)
         # end wxGlade
 
     def __do_layout(self):
